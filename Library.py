@@ -21,8 +21,10 @@ except mysql.connector.Error as err:
 else:
     cursor = cnx.cursor()
     selectedAuthor = 'Carl Sagan'
-    query = ("SELECT title FROM library")
-    cursor.execute(query)
+    #not adding the string properly.
+    query = "SELECT title FROM library WHERE author = " + selectedAuthor
+    print(query)
+    #cursor.execute(query)
     for(title) in cursor:
         print(title)
     cursor.close()
