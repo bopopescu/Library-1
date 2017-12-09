@@ -25,7 +25,7 @@ def test_connection():
 
 
 
-@app.route('/library/api/v1.0/tasks/', methods=['GET'])
+@app.route('/library/api/v1.0/books/', methods=['GET'])
 def get_all_books():
     if test_connection():
         cnx = mysql.connector.connect(**config)
