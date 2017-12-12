@@ -1,6 +1,10 @@
-from flask import Flask, jsonify, current_app, abort
+from flask import Flask, jsonify, current_app, abort, request
 import mysql.connector
 from mysql.connector import errorcode
+import datetime
+import json
+import requests
+
 
 app = Flask(__name__)
 
@@ -9,7 +13,6 @@ config = {'user': 'root',
           'password': 'kennedy',
           'host': '127.0.0.1',
           'database': 'Library'}
-
 
 def test_connection():
     try:
@@ -23,6 +26,13 @@ def test_connection():
             print(err)
     return True
 
+
+def get_goodreads_score():
+    r = requests.get('https://www.goodreads.com/search', {'key':'A4UxbJijc5UvolsutCEQ','format':
+    'xml','title':'Pale Blue Dot','author':"Carl Sagan"})
+    print(r.text)
+
+print(get_goodreads_score())
 
 @app.route('/library/api/v1.0/books/', methods=['GET'])
 def get_all_books():
@@ -46,6 +56,25 @@ def get_a_book(book_id):
     for row in cursor:
         result.append(row)
     return jsonify({'book': result })
+
+
+@app.route('/library/api/v1.0/books', methods=['POST', 'GET'])
+def create_entry():
+    if not request.json or not 'title' in request.json:
+        abort(400)
+    if request.json['DateObtained'] == None:
+        now = datetime.datetime.now()
+    book = {
+        'bookID': books[-1]['bookID'] + 1,
+        'title': request.json['title'],
+        'author': request.json['author'],
+        'subtitle': request.json['subtitle'],
+        'dateObtained': now}
+    books.append(book)
+    return jsonify({'book': book}), 201
+    #Will add goodreads score here
+    #'goodreadsscore': var_name
+
 
 
 
