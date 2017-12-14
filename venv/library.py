@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, current_app, abort, request
+from flask_sqlalchemy import SQLAlchemy
 import mysql.connector
 from mysql.connector import errorcode
 import datetime
@@ -7,32 +8,38 @@ import requests
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'kennedy'
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://localhost:5000/library'
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+db = SQLAlchemy(app)
 
 config = {'user': 'root',
           'password': 'kennedy',
           'host': '127.0.0.1',
           'database': 'Library'}
 
-def test_connection():
-    try:
-        cnx = mysql.connector.connect(**config)
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("Invalid Username or Password")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Database does not exist")
-        else:
-            print(err)
-    return True
 
 
-def get_goodreads_score():
-    r = requests.get('https://www.goodreads.com/search', {'key':'A4UxbJijc5UvolsutCEQ','format':
-    'xml','title':'Pale Blue Dot','author':"Carl Sagan"})
-    print(r.text)
+class Entry(db.Model):
+    book_id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(50))
+    author = db.Column(db.String(50))
+    subtitle = db.Column(db.String(50))
+    genre = db.Column(db.String(50))
 
-print(get_goodreads_score())
+
+
+
+@app.route('/')
+def index():
+    return "Index - Starting Page of Jeremy's Webservice"
+
+
+@app.route('/library/')
+def library():
+    return "This is the Library Page. \n\nOne day it may be a nice splash screen"
+
 
 @app.route('/library/api/v1.0/books/', methods=['GET'])
 def get_all_books():
@@ -44,7 +51,7 @@ def get_all_books():
     for row in cursor:
             books.append(row)
     with app.app_context():
-        return jsonify({'entries': books})
+        return jsonify(books)
 
 @app.route('/library/api/v1.0/books/<int:book_id>', methods=['GET'])
 def get_a_book(book_id):
@@ -58,22 +65,25 @@ def get_a_book(book_id):
     return jsonify({'book': result })
 
 
-@app.route('/library/api/v1.0/books', methods=['POST', 'GET'])
-def create_entry():
-    if not request.json or not 'title' in request.json:
-        abort(400)
-    if request.json['DateObtained'] == None:
-        now = datetime.datetime.now()
-    book = {
-        'bookID': books[-1]['bookID'] + 1,
-        'title': request.json['title'],
-        'author': request.json['author'],
-        'subtitle': request.json['subtitle'],
-        'dateObtained': now}
-    books.append(book)
-    return jsonify({'book': book}), 201
     #Will add goodreads score here
     #'goodreadsscore': var_name
+
+@app.route('/library/api/v1.0/books', methods = ['POST'])
+def create_entry():
+    data = request.get_json()
+    new_entry = Entry(author=data['author'], title = data['title'], subtitle = ['subtitle'], genre = data["genre"])
+    db.session.add(new_entry)
+    db.session.commit()
+    return jsonify()
+
+
+#@app.route('/library/api/v1.0/books/<int:book_id', methods=['DELETE'])
+#def delete_book(book_id):
+#    book = [book for book in books if book['id'] == book_id]
+#    if len(book) == 0:
+#        abort(404)
+#    books.remove(book[0])
+#    return jsonify({'result': True})
 
 
 
