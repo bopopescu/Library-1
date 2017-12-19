@@ -69,7 +69,7 @@ def get_all_books():
 @app.route('/library/api/v1.0/books/<string:chosen_author>', methods=['GET'])
 def get_author_books(chosen_author):
     ouevre = []
-    authorQuery = library.author.ilike(chosen_author)
+    authorQuery = library.author.ilike("%"+ chosen_author+ "%")
     #Debug
     print(authorQuery)
     #Debug
