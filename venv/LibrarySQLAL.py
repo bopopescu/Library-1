@@ -47,13 +47,9 @@ class library(db.Model):
             'subtitle' : self.subtitle,
             'author' : self.author,
             'genre' : self.genre,
-            'dateObtained' : self.date_obtained,
+            'date Obtained' : self.date_obtained,
             'finished' : self.finished
         }
-
-for books in library.query.all():
-    print(library.serialize(books))
-
 
 
 @app.route('/')
@@ -61,22 +57,22 @@ def index():
     return "Index Page - Welcome to Jeremy's Webservice"
 
 
-
+#Get all books (entries)
 @app.route('/library/api/v1.0/books/', methods = ['GET'])
 def get_all_books():
-    #https://stackoverflow.com/questions/7102754/jsonify-a-sqlalchemy-result-set-in-flask
-    #Turning SQLALCHEMY into a JSON LIst.
     list_of_books = []
     for books in library.query.all():
         list_of_books.append(library.serialize(books))
-    return jsonify(list_of_books)
+    return jsonify({'library': list_of_books})
 
+#Get book whose 'author' contains author
 @app.route('/library/api/v1.0/books/<string:author>', methods=['GET'])
-def get_author_books():
-    ouvre = ()
-    for Library.author in Library:
-       print(Library.author)
-    return ouvre
+def get_author_books(author):
+    ouevre = []
+    for title in library.query.filter(library.author.ilike(author)).all():
+        ouevre.append(title)
+    return jsonify({'bibliography': ouevre})
+
 
 
 
