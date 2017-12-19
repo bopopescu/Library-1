@@ -1,5 +1,7 @@
 from flask import Flask, jsonify, current_app, abort, request
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Column, Integer, String
+
 import mysql.connector
 from mysql.connector import errorcode
 import datetime
@@ -9,7 +11,7 @@ import requests
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kennedy'
-app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://localhost:5000/library'
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql+mysqlDB://localhost:5000/library'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -19,17 +21,23 @@ config = {'user': 'root',
           'host': '127.0.0.1',
           'database': 'Library'}
 
-
-
 class Entry(db.Model):
-    book_id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(50))
-    author = db.Column(db.String(50))
+    book_id = db.Column(db.Integer, primary_key=True, nullable=False)
+    title = db.Column(db.String(50), nullable = False)
+    author = db.Column(db.String(50), nullable = False)
     subtitle = db.Column(db.String(50))
     genre = db.Column(db.String(50))
 
-
-
+def get_data():
+    cnx = mysql.connector.connect(**config)
+    cursor = cnx.cursor(dictionary=True)
+    query = "SELECT title, author, subtitle, genre, bookID FROM library"
+    cursor.execute(query)
+    books = []
+    for row in cursor:
+        books.append(row)
+    with app.app_context():
+        return json.dumps(books)
 
 @app.route('/')
 def index():
@@ -41,50 +49,40 @@ def library():
     return "This is the Library Page. \n\nOne day it may be a nice splash screen"
 
 
+#Get all books
 @app.route('/library/api/v1.0/books/', methods=['GET'])
 def get_all_books():
-    cnx = mysql.connector.connect(**config)
-    cursor = cnx.cursor(dictionary=True)
-    query = "SELECT title, author, subtitle, genre FROM library"
-    cursor.execute(query)
-    books = []
-    for row in cursor:
-            books.append(row)
-    with app.app_context():
-        return jsonify(books)
+    return get_data()
 
+#Get books by bookID
 @app.route('/library/api/v1.0/books/<int:book_id>', methods=['GET'])
 def get_a_book(book_id):
-    cnx = mysql.connector.connect(**config)
-    cursor = cnx.cursor(dictionary=True)
-    query = "SELECT title, author, subtitle, genre FROM library WHERE bookID=" + str(book_id)
-    cursor.execute(query)
-    result = []
-    for row in cursor:
-        result.append(row)
-    return jsonify({'book': result })
+    data = get_data()
+    book = [book for book in data if data['bookID'] == book_id]
+    return jsonify({'book': book[0] })
+
+#Get book by book title
+@app.route('/library/api/v1.0/books/<string:book_title>', methods = ['GET'])
+def get_data_by_title(book_title):
+    r = requests.get()
+
+#get boooks by author
+@app.route('/library/api/v1.0/books/<string:author>', methods=['GET'])
+def get_data_by_author(author):
+    data = get_all_books
+    book = [book for book in data if data['author'] == author]
+    print(json.dumps(book))
 
 
-    #Will add goodreads score here
-    #'goodreadsscore': var_name
-
+#Add books to DB
 @app.route('/library/api/v1.0/books', methods = ['POST'])
 def create_entry():
-    data = request.get_json()
-    new_entry = Entry(author=data['author'], title = data['title'], subtitle = ['subtitle'], genre = data["genre"])
-    db.session.add(new_entry)
-    db.session.commit()
+    data = get_data()
+    book = {'title' : request.json['title'],
+            'author': request.json['author'],
+            'subtitle' : request.json['subtitle'],
+            'genre': request.json['genre']}
     return jsonify()
-
-
-#@app.route('/library/api/v1.0/books/<int:book_id', methods=['DELETE'])
-#def delete_book(book_id):
-#    book = [book for book in books if book['id'] == book_id]
-#    if len(book) == 0:
-#        abort(404)
-#    books.remove(book[0])
-#    return jsonify({'result': True})
-
 
 
 
